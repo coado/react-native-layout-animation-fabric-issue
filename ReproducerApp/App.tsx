@@ -1,117 +1,169 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
   View,
+  TextInput,
+  LayoutAnimation,
+  UIManager,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Animated,
+  Platform,
 } from 'react-native';
+import type {KeyboardEvent} from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const animationSettings = {
+  duration: 500,
+  create: {
+    duration: 300,
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+  update: {
+    duration: 300,
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+};
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+const App = () => {
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const onKeyboardShow = (event: KeyboardEvent) => {
+    LayoutAnimation.configureNext(animationSettings);
+
+    setKeyboardHeight(event.endCoordinates.height);
   };
 
+  const onKeyboardHide = () => {
+    setKeyboardHeight(0);
+  };
+
+  useEffect(() => {
+    const showListener = Keyboard.addListener(
+      'keyboardWillShow',
+      onKeyboardShow,
+    );
+    const hideListener = Keyboard.addListener(
+      'keyboardWillHide',
+      onKeyboardHide,
+    );
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  const fadeIn = useCallback(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [fadeAnim]);
+
+  const fadeOut = useCallback(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [fadeAnim]);
+
+  useEffect(() => {
+    if (keyboardHeight !== 0) {
+      fadeIn();
+    } else {
+      fadeOut();
+    }
+  }, [keyboardHeight, fadeIn, fadeOut]);
+
+  const fadeInStyles = {
+    innerContainer: {
+      backgroundColor: fadeAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['#A167FF', '#67FFC4'],
+      }),
+    },
+  };
+
+  const fadeOutStyles = {
+    innerContainer: {
+      backgroundColor: fadeAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['#67FFC4', '#A167FF'],
+      }),
+    },
+  };
+
+  const isKeyboardOpen = keyboardHeight !== 0;
+
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <View style={styles.container}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.container}>
+          <View style={styles.inputWrapper}>
+            <View
+              style={[
+                styles.inputContainer,
+                isKeyboardOpen && {marginBottom: keyboardHeight},
+              ]}>
+              <Animated.View
+                style={[
+                  styles.animatedContainer,
+                  fadeInStyles.innerContainer,
+                  fadeOutStyles.innerContainer,
+                ]}>
+                <TextInput
+                  style={[styles.input]}
+                  placeholderTextColor={'rgba(0, 0, 0, 0.6)'}
+                  placeholder="Text..."
+                />
+              </Animated.View>
+            </View>
+          </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </TouchableWithoutFeedback>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  inputWrapper: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  inputContainer: {
+    width: '100%',
+    paddingHorizontal: 32,
+    alignItems: 'center',
   },
-  highlight: {
-    fontWeight: '700',
+  animatedContainer: {
+    width: '100%',
+    // borderWidth: 1,
+    borderRadius: 4,
+  },
+  input: {
+    height: 47,
+    padding: 3,
+    borderColor: 'black',
+    borderWidth: 1,
+    borderRadius: 4,
   },
 });
 
