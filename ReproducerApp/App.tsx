@@ -10,6 +10,9 @@ import {
   Keyboard,
   Animated,
   Platform,
+  Pressable,
+  Text,
+  SafeAreaView,
 } from 'react-native';
 import type {KeyboardEvent} from 'react-native';
 
@@ -36,6 +39,7 @@ const animationSettings = {
 
 const App = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [toggle, setToggle] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const onKeyboardShow = (event: KeyboardEvent) => {
@@ -108,15 +112,29 @@ const App = () => {
 
   const isKeyboardOpen = keyboardHeight !== 0;
 
+  const shadowStyles = {
+    shadowColor: 'black',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.5,
+    elevation: 5,
+  };
+
+  const toggleShadow = () => {
+    console.log('toggle shadow');
+    setToggle(prev => !prev);
+  };
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
           <View style={styles.inputWrapper}>
             <View
+              // collapsable={false}
               style={[
                 styles.inputContainer,
                 isKeyboardOpen && {marginBottom: keyboardHeight},
+                toggle && shadowStyles,
               ]}>
               <Animated.View
                 style={[
@@ -134,13 +152,19 @@ const App = () => {
           </View>
         </View>
       </TouchableWithoutFeedback>
-    </View>
+      <View style={styles.pressableContainer}>
+        <Pressable onPress={toggleShadow} style={styles.pressable}>
+          <Text style={styles.pressableText}>Toggle shadow</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
   },
   inputWrapper: {
     alignItems: 'center',
@@ -155,7 +179,6 @@ const styles = StyleSheet.create({
   },
   animatedContainer: {
     width: '100%',
-    // borderWidth: 1,
     borderRadius: 4,
   },
   input: {
@@ -164,6 +187,24 @@ const styles = StyleSheet.create({
     borderColor: 'black',
     borderWidth: 1,
     borderRadius: 4,
+    opacity: 0.2,
+  },
+  pressableContainer: {
+    width: '100%',
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressable: {
+    backgroundColor: '#4D45FF',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    width: '100%',
+  },
+  pressableText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 
